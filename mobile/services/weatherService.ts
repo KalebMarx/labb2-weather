@@ -1,5 +1,5 @@
 import type { Place, WeatherForecast } from '../models/Weather';
-import { parseWeather } from '../parsers/parseWeather';
+import { isObject, parseWeather } from '../parsers/parseWeather';
 
 // Development proxy only. The final app must use SMHI directly.
 const forecastUrl = 'https://maceo.sth.kth.se/weather/forecast';
@@ -18,7 +18,13 @@ export async function fetchWeather(place: Place): Promise<WeatherForecast> {
       throw new Error(`Weather request failed (HTTP ${response.status}).`);
     }
 
-    return parseWeather(await response.json(), place);
+    const data: unknown = await response.json();
+
+    if (isObject(data) && data.response === 'Requested point is out of bounds') {
+      throw new Error('The KTH test server has no forecast for this location. Please select another place.');
+    }
+
+    return parseWeather(data, place);
   } finally {
     clearTimeout(timeout);
   }

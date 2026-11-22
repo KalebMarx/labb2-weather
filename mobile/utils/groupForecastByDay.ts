@@ -21,10 +21,8 @@ export function getForecastDate(time: string): string {
   return dateFormatter.format(new Date(time));
 }
 
-export function groupForecastByDay(
-  entries: ForecastEntry[],
-  referenceDate = getForecastDate(new Date().toISOString()),
-): ForecastDay[] {
+export function groupForecastByDay(entries: ForecastEntry[], referenceDate = getForecastDate(new Date().toISOString()),): ForecastDay[] 
+{
   const endDate = new Date(`${referenceDate}T00:00:00Z`);
   endDate.setUTCDate(endDate.getUTCDate() + 7);
   const endDateString = endDate.toISOString().slice(0, 10);

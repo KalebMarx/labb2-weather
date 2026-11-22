@@ -1,108 +1,62 @@
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
-import type { Place } from './models/Weather';
+import { Button } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { DayDetailsScreen } from './screens/DayDetailsScreen';
+import { HomeScreen } from './screens/HomeScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 import { fetchWeather } from './services/weatherService';
 import { useWeatherViewModel } from './viewmodels/useWeatherViewModel';
-import { forecastTimeZone } from './utils/groupForecastByDay';
 
-const place: Place = {
-  name: 'Sigfridstorp',
-  latitude: 60.383,
-  longitude: 14.333,
+type ScreenParams = {
+  Home: undefined;
+  DayDetails: { date: string };
+  Settings: undefined;
 };
+
+const Stack = createNativeStackNavigator<ScreenParams>();
 
 // The proxy returns historical data. Remove this override when using live SMHI.
 const referenceDate = '2021-11-01';
 
 export default function App() {
-  const { weather, days, loading, error, loadWeather } =
-    useWeatherViewModel(fetchWeather, referenceDate);
+  const viewModel = useWeatherViewModel(fetchWeather, referenceDate);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Weather</Text>
-      <Text>KTH proxy test data ({referenceDate})</Text>
-
-      <Button
-        title="Load weather"
-        onPress={() => loadWeather(place)}
-        disabled={loading}
-      />
-
-      {loading && <Text>Loading weather...</Text>}
-      {error && <Text>{error}</Text>}
-
-      {weather && (
-        <>
-          <Text>{weather.place.name}</Text>
-          <FlatList
-            style={styles.list}
-            data={days}
-            keyExtractor={day => day.date}
-            ListEmptyComponent={<Text>No forecast available for these dates.</Text>}
-            renderItem={({ item: day }) => (
-              <View style={styles.forecastEntry}>
-                <Text style={styles.dayTitle}>{day.date}</Text>
-                <Text>Low: {day.minTemperature} °C / High: {day.maxTemperature} °C</Text>
-                <Text>Weather code: {day.weatherCode}</Text>
-
-                {day.date === referenceDate && (
-                  <>
-                    <Text style={styles.dayTitle}>Hourly forecast</Text>
-                    {day.entries.map(entry => (
-                      <View key={entry.time} style={styles.hourlyEntry}>
-                        <Text>
-                          {new Date(entry.time).toLocaleTimeString('en-GB', {
-                            timeZone: forecastTimeZone,
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </Text>
-                        <Text>{entry.temperature} °C — Weather code: {entry.weatherCode}</Text>
-                      </View>
-                    ))}
-                  </>
-                )}
-              </View>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Home"
+            options={({ navigation }) => ({
+              title: 'Weather',
+              headerRight: () => <Button title="Settings" onPress={() => navigation.navigate('Settings')} />,
+            })}
+          >
+            {({ navigation }) => (
+              <HomeScreen
+                viewModel={viewModel}
+                referenceDate={referenceDate}
+                onSelectDay={date => navigation.navigate('DayDetails', { date })}
+              />
             )}
-          />
-        </>
-      )}
-
+          </Stack.Screen>
+          <Stack.Screen name="DayDetails" options={{ title: 'Day details' }}>
+            {({ route }) => (
+              <DayDetailsScreen
+                day={viewModel.days.find(day => day.date === route.params.date)}
+                placeName={viewModel.weather?.place.name ?? ''}
+                temperatureUnit={viewModel.settings?.temperatureUnit ?? 'C'}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Settings">
+            {() => <SettingsScreen viewModel={viewModel} />}
+          </Stack.Screen>
+        </Stack.Navigator>
+      </NavigationContainer>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    padding: 24,
-    paddingTop: 48,
-    gap: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  list: {
-    flex: 1,
-    width: '100%',
-  },
-  forecastEntry: {
-    paddingVertical: 16,
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  dayTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  hourlyEntry: {
-    paddingVertical: 8,
-    gap: 4,
-  },
-});
