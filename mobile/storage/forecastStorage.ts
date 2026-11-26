@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { WeatherForecast } from '../models/Weather';
+import type { WeatherForecast } from '../models/weatherModels';
 import { parsePlace } from '../parsers/parsePlace';
 import { isObject } from '../parsers/parseWeather';
 

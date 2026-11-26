@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Place } from '../models/Weather';
+import type { Place } from '../models/weatherModels';
 import { isObject } from '../parsers/parseWeather';
 
 const favouritesKey = 'weather.favourites';

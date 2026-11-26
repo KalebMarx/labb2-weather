@@ -1,28 +1,26 @@
-import type { Place, WeatherForecast } from '../models/Weather';
-import { isObject, parseWeather } from '../parsers/parseWeather';
+import type { Place, WeatherForecast } from '../models/weatherModels';
+import { parseWeather } from '../parsers/parseWeather';
 
-// Development proxy only. The final app must use SMHI directly.
-const forecastUrl = 'https://maceo.sth.kth.se/weather/forecast';
+const forecastUrl = 'https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point';
 
 export async function fetchWeather(place: Place): Promise<WeatherForecast> {
-  const coordinates = `lon/${place.longitude}/lat/${place.latitude}`;
+  const coordinates = `lon/${Number(place.longitude.toFixed(6))}/lat/${Number(place.latitude.toFixed(6))}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(`${forecastUrl}?lonLat=${coordinates}`, {
+    const response = await fetch(`${forecastUrl}/${coordinates}/data.json`, {
       signal: controller.signal,
     });
 
     if (!response.ok) {
+      if (response.status === 400) {
+        throw new Error('SMHI has no forecast for this location. Please select a place within its forecast area.');
+      }
       throw new Error(`Weather request failed (HTTP ${response.status}).`);
     }
 
     const data: unknown = await response.json();
-
-    if (isObject(data) && data.response === 'Requested point is out of bounds') {
-      throw new Error('The KTH test server has no forecast for this location. Please select another place.');
-    }
 
     return parseWeather(data, place);
   } finally {

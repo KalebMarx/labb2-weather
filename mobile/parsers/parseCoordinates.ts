@@ -1,4 +1,4 @@
-import type { Place } from '../models/Weather';
+import type { Place } from '../models/weatherModels';
 import { parsePlace } from './parsePlace';
 
 // Return null for place-name input; throw for malformed coordinate input.

@@ -4,6 +4,7 @@ import { forecastTimeZone } from '../utils/groupForecastByDay';
 import type { ForecastDay } from '../utils/groupForecastByDay';
 import type { TemperatureUnit } from '../models/Settings';
 import { formatTemperature } from '../utils/formatTemperature';
+import { formatWeatherCondition } from '../utils/formatWeatherCondition';
 
 type DayDetailsScreenProps = {
   day: ForecastDay | undefined;
@@ -31,7 +32,7 @@ export function DayDetailsScreen({ day, placeName, temperatureUnit }: DayDetails
                   })}
                 </Text>
                 <Text>Temperature: {formatTemperature(entry.temperature, temperatureUnit)}</Text>
-                <Text>Weather code: {entry.weatherCode}</Text>
+                <Text>{formatWeatherCondition(entry.weatherCode)}</Text>
                 <Text>
                   Wind: {entry.windSpeed === null ? 'Unavailable' : `${entry.windSpeed} m/s`}
                 </Text>

@@ -1,178 +1,190 @@
-# SPEC.md - Weather app
+# Weather app — SPEC
 
-## 1. AI meta-instructions
+## 1. Instructions for AI
 
-- Read `SPEC.md` and `STYLE.md` first. Explain conflicts with the student's request; the student decides, with lab constraints made explicit.
-- Keep changes small and reuse existing code. Follow the hint ladder in `STYLE.md` for core logic.
-- Write the component specification in Section 4 before coding.
-- Never tick requirements or mark them complete unless the student has verified them and can explain them.
-- Follow the starter template's restriction on writing tests/reflections pending instructor clarification (Section 5). Help explain and review tests instead.
-- Never write test results, `LLM_PROCESS.md`, or personal reflections. The student fills the oral-exam map.
-- Remind the student of the end-of-session ritual in Section 9 after each working session.
+- Read this file and `STYLE.md` before working.
+- Keep code small and readable. Reuse existing functions. Explain changes.
+- Build only what the student requests. If a request conflicts with these rules or the lab, explain the conflict; the student decides.
+- Describe a new part in Section 4 before writing its code.
+- Do not tick requirements or claim the student understands something.
+- Do not write the student's test results, process log, or reflection.
+- The student approved AI help with tests and oral-exam references after discussing the conflicting lab guidance. Keep changes focused; the student reviews and verifies them.
+- At the end of a session, follow Section 8.
 
-## 2. Project facts
+## 2. Project and AI use
 
-| Course | Lab | Platform | Grade target |
-| --- | --- | --- | --- |
-| Student to confirm | B:2 | TypeScript / React Native / Expo | Student to fill |
+- Lab: B:2. Goal: pass / E.
+- Platform: TypeScript, React Native, Expo. Phone: iPhone 13 using Expo Go.
+- Weather and place-name search use SMHI directly. The KTH proxy was used during development.
+- Code and documents are in English. No optional features are planned.
+- AI tool: Codex. The student reports that AI wrote the code, while the student chose the architecture and read the implementation.
+- Usual prompts: ask how a feature could be implemented, then request implementation. The student asks Codex to read project instructions, avoid unnecessary code, reuse existing code, and review its work once.
+- Detailed personal accounts and prompts belong in the student's `docs/LLM_PROCESS.md`.
 
-- Development: Expo Go on a phone; KTH's SMHI-format proxy. Final app must use real SMHI.
-- Geocoding API: not chosen. Code and documentation: English. No optional features planned.
-- AI tool: Codex. Per the student's account, AI wrote the implementation; the student chose the architecture and reads the code. Prompts request an implementation explanation, minimal readable changes, and one self-review.
+## 3. Requirements
 
-## 3. Requirements checklist
+These are the lab requirements in shorter words. The student ticks a box only after checking the feature and being able to explain it. Actual test results belong in `docs/TEST_REPORT.md`.
 
-W IDs follow the main lab instructions. Notes describe code present, not completion or test results. The student owns the unchecked completion column and may tick it only after verification and explanation.
-
-| ID | Requirement | Current implementation | Complete |
-| --- | --- | --- | --- |
-| W-01 | Place-name search using permitted geocoding. | Parser, proxy service, ViewModel search state, and Home search/selection exist; device verification and final geocoding source remain. | [ ] |
-| W-02 | Coordinate input; validate finite numbers and coordinate ranges. | Shared search accepts decimal latitude, longitude pairs with validation; device verification remains. | [ ] |
-| W-03 | Current conditions and scrollable seven-day temperature/condition summaries. | Daily low/high and codes exist; current conditions and live-data review remain. | [ ] |
-| W-04 | Today's hourly detail; daily overview for remaining days. | Grouping and horizontal hours exist using historical proxy dates. | [ ] |
-| W-05 | Selected-day details with temperature, condition, wind, and precipitation where available. | Home/Details navigation and entry list exist. | [ ] |
-| W-06 | Favourites and dedicated quick access. | Persistent Place list, add/remove, and Home quick access exist; device verification remains. | [ ] |
-| W-07 | Settings for refresh interval and another UI preference. | Saved interval/unit choices, display conversion, and active-app refresh exist; device verification remains. | [ ] |
-| W-08 | Asynchronous requests; real API in final app. | Async service and timeout exist; proxy still used. | [ ] |
-| W-09 | Separate parser mapping JSON into our own model. | Model and parser exist. | [ ] |
-| W-10 | Persist parsed forecasts; show cached data and an offline message. | Last parsed forecast saves/restores with timestamp and saved/previous-data messages; device verification remains. | [ ] |
-| W-11 | Loading/empty/error states without crashes or silent blank screens. | Basic handling exists; offline recovery remains. | [ ] |
-| W-12 | Portrait and landscape support. | Still locked to portrait. | [ ] |
-| W-13 | Runnable, passing tests in at least two of parsing, errors, and transformation. | Parser/grouping test files exist; student verification remains. | [ ] |
-| W-14 | At least 20 interaction scenarios and device/official emulator testing. | Report template exists; observed results need recording. | [ ] |
-| W-15 | Clear layers and a considered, consistent UI. | Layers and two screens exist; final review remains. | [ ] |
-| W-16 | Maintained records; reflection with appendices A-D, submitted at least one day before presentation. | README, student records, reflection, and submission assembly remain. | [ ] |
-
-## 4. Component specs
-
-Existing descriptions are retrospective (2026-11-22). Add future components before implementation. Test ideas are not results.
-
-| Component | Purpose; inputs -> outputs | Edge cases | Test ideas | IDs |
-| --- | --- | --- | --- | --- |
-| `models/Weather.ts` | Define Place, ForecastEntry, WeatherForecast. | Unloaded state; null optional measurements. | Compare model with parser/UI fields. | W-03, W-05, W-09 |
-| `parsers/parseWeather.ts` | JSON + Place -> validated forecast. | Malformed/missing fields, invalid dates/codes, valid zero, absent optional values. | Mapping and rejection cases. | W-09, W-11, W-13 |
-| `services/weatherService.ts` | Place -> downloaded and parsed forecast. | HTTP/network failures, invalid JSON, timeout cleanup. | Successful request and each failure path. | W-08, W-11 |
-| `viewmodels/useWeatherViewModel.ts` | Fetch function + reference date -> weather/search state, grouped days, load/search actions. | Initial null, blank/no-match search, failure, overlapping requests; search preserves weather. | Independent loading/errors; newest search and forecast requests win. | W-01, W-03, W-04, W-11, W-15 |
-| `utils/groupForecastByDay.ts` | Entries + reference date -> ordered days, low/high, condition code. | Midnight, summer time, month boundary, empty/missing days. | Grouping, ordering, seven-day window, unchanged input. | W-03, W-04, W-13 |
-| `screens/HomeScreen.tsx` | ViewModel + local search text + reference date + callback -> search/results and forecast UI. | Blank input, no matches, failure, same-name places; bounded results list. | Search/select/retry; distinguish coordinates; swipe hours, scroll days, open Details. | W-01, W-03, W-04, W-05, W-11 |
-| `screens/DayDetailsScreen.tsx` | Selected day + place name -> available time entries and measurements. | Missing day; null versus zero measurements. | Different dates, units/Unavailable, final entry. | W-05, W-11 |
-| `App.tsx` | Shared ViewModel + selected date -> Home/Details navigation. | Back preserves state; unmatched date. | Home -> Details -> Back without refetching. | W-05, W-15 |
-
-### Place parser (W-01)
-
-`parsers/parsePlace.ts`: one unknown search result -> Place. Reuse `isObject`; reject missing/blank names, non-finite coordinates, and out-of-range latitude/longitude. Check valid conversion, invalid fields, zero coordinates, and range boundaries.
-
-### Place service (W-01, W-11)
-
-`services/placeService.ts`: search text -> Promise of Place[]. Trim/encode the query; return [] for blank input. Request the KTH search proxy with a 15-second timeout, check HTTP status and the response array, then reuse `parsePlace`. Check blank/no matches, multiple results, special characters, failed requests, and malformed data. Called by the ViewModel's search action.
-
-### Search integration (W-01, W-11)
-
-Home owns the input text; the ViewModel calls `placeService.searchPlaces` and owns results, searching, and search error. Null results mean no completed search; [] means no matches. Keep search and forecast requests independent, with separate request counters. Selecting a result calls the existing loadWeather using its coordinates; preserve previous forecast on failure without relabelling it. Check blank/unknown/offline searches, duplicate names, rapid searches, and selection of different results.
-
-Selecting a place clears search results and invalidates pending search responses. Recognise the proxy's HTTP-200 out-of-bounds response and display a clear error; never substitute another location's forecast.
-
-### Favourites (W-06, W-11)
-
-`storage/favouritesStorage.ts` loads/saves Place[] under `weather.favourites` using AsyncStorage and checks stored fields. The ViewModel restores once, exposes favourites and a toggle action, and saves before changing state. Match by coordinates; block edits until loaded and while saving to prevent overwrites. On read failure, show a retry; on write failure, keep the previous list. Home shows quick access even without weather and an Add button for an unsaved weather.place; removal is available only in the Favourites section. Selecting a favourite reuses loadWeather; forecasts are not cached by this feature. Check add/remove, same-name places, restart persistence, offline selection, malformed storage, and failed writes.
-
-### Last forecast cache (W-10, W-11)
-
-`storage/forecastStorage.ts` saves/loads one parsed WeatherForecast under `weather.lastForecast`, validating stored place, fetch time, and entries. Restore on startup without replacing a newer network result. Save only accepted successful forecasts, in write order; a cache-write failure must not hide downloaded data. Home shows fetchedAt, restored/previous-data messages, and Refresh for the displayed place. Missing cache is normal; corrupt/read failures show a message. Check online load -> close -> offline reopen, first launch offline, failed refresh, malformed cache, failed writes, and startup/request races.
-
-### Settings (W-07, W-11)
-
-`models/Settings.ts` defines a 15/30/60-minute interval and C/F preference, defaulting to 30 minutes/Celsius. `storage/settingsStorage.ts` validates and persists settings in AsyncStorage. The shared ViewModel restores them, saves before applying changes, and exposes saving/error/retry state. `screens/SettingsScreen.tsx` is reachable from Home. A shared formatter converts Celsius only for display in Home/Details. Auto-refresh reuses loadWeather for the displayed place when due, stops its timer in background, and checks freshness on return; no overlapping refreshes. Check restart persistence, invalid storage, failed save, 0 C -> 32 F, both screens, changed intervals, background/return, and failed refresh preserving weather.
-
-### Shared place/coordinate input (W-01, W-02, W-11)
-
-`parsers/parseCoordinates.ts`: text -> Place for a valid decimal latitude/longitude pair, null for a place name, or a validation error for malformed coordinate input. Comma separates latitude first and longitude second; decimals use a dot. Numeric-only input or a comma-separated input with a numeric-looking part is treated as coordinates (including NaN/Infinity). Reuse parsePlace for finite/range checks. The ViewModel sends valid pairs directly to loadWeather and names to geocoding. Check names with commas, signs/decimals/zero, blank or missing parts, mixed numeric text, boundaries, and out-of-range values; invalid pairs must not request data.
-
-## 5. Open questions
-
-
-- The starter template says AI must not write tests; the earlier appendix permits AI drafts of support/unit-test code. Ask the instructor which applies. Existing AI-written tests must retain honest attribution.
-- Clarify SDK-only/single-file advice versus recommended Expo packages and separate layers.
-- Clarify Expo test coverage: general instructions accept a device/emulator; hints mention both iOS and Android simulators.
-- Oral Q24 suggests adding hourly support, although hourly detail is explicitly required. Follow the functional requirement meanwhile.
-
-## 6. Decision log
-
-- One ViewModel in `App.tsx`, shared by Home and Details. Navigation passes a date; Details reuses loaded data.
-- Keep HTTP, parsing, transformation, state, and UI separate. Use built-in tools and local React state.
-- Group by Swedish dates (`Europe/Stockholm`) within seven calendar days. Use available temperatures for low/high and the middle entry's condition code; do not invent missing days.
-- Proxy reference date: 2021-11-01. Remove the override for live data. Today's hours scroll sideways; every daily summary opens Details.
-- Settings default to 30 minutes/Celsius. Store forecasts in Celsius; format both screens in the chosen unit to one decimal place. Check freshness once a minute while active and on return; failed auto-refresh waits the chosen interval before retry. No background fetch.
-
-## 7. Oral exam map
-
-Student fills code locations and test names/demonstrations. Start with Q26. Blank cells are not understanding confirmations.
-
-| Q | Topic | IDs | Code location | Test/demo |
-| --- | --- | --- | --- | --- |
-| 1 | Request function and return value | W-08 | | |
-| 2 | JSON parsing into model | W-09 | | |
-| 3 | Used/ignored API fields | W-03, W-05, W-09 | | |
-| 4 | HTTP 200 with missing fields | W-09, W-11 | | |
-| 5 | Search-to-screen flow | W-01, W-08, W-09 | | |
-| 6 | Cache and refresh | W-07, W-10 | | |
-| 7 | Where fetched data lives | W-15 | | |
-| 8 | State on new-city search | W-01, W-11 | | |
-| 9 | How state updates UI | W-15 | | |
-| 10 | State after leaving/returning | W-07, W-10 | | |
-| 11 | Loading and stale data | W-11 | | |
-| 12 | Rapid searches/races | W-01, W-11 | | |
-| 13 | Timeout display | W-11 | | |
-| 14 | Network versus HTTP/API errors | W-08, W-11 | | |
-| 15 | First launch offline | W-10, W-11 | | |
-| 16 | Offline with cached data | W-10, W-11 | | |
-| 17 | Error state and UI flow | W-11 | | |
-| 18 | Hardest error case | W-11 | | |
-| 19 | MVVM responsibilities | W-15 | | |
-| 20 | Why requests are outside View | W-08, W-15 | | |
-| 21 | Testable logic outside UI | W-13, W-15 | | |
-| 22 | Navigation outside ViewModel | W-05, W-15 | | |
-| 23 | Requirement-to-code trace | W-16 | | |
-| 24 | Changes for hourly support | W-04, W-15 | | |
-| 25 | Explain AI-assisted code | W-16 | | |
-| 26 | AI instructions and requirement trace | W-16 | | |
-| 27 | Challenged/changed AI suggestion | W-16 | | |
-| 28 | Verify AI code with a test | W-13, W-16 | | |
-| 29 | Effective prompt and why | W-16 | | |
-| 30 | What to change next time | W-16 | | |
-
-## 8. Plan and status
-
-Next: landscape/UI -> live API and submission. Specify one component at a time in Section 4; verify and explain existing work before marking it complete.
-
-Project updates only; personal session accounts belong in the student's process log.
-
-| Date | Update | Next action |
+| ID | Requirement | Complete |
 | --- | --- | --- |
-| 2026-11-22 (retrospective) | Model, parser, proxy service, ViewModel, grouping, Home/Details, and sideways hours present. | Student verifies/explains features and completes personal records. |
-| 2026-11-22 | SPEC aligned to the starter template; implementation notes and retrospective specs retained; testing-rule conflict flagged. | Student completes oral map; clarify open questions. |
-| 2026-11-22 | Added the place-service specification and implementation, reusing parsePlace. | Connect search to ViewModel/Home after reviewing the service. |
-| 2026-11-22 | Connected place search to independent ViewModel state and Home input/results; selecting coordinates reuses loadWeather. | Student checks search, errors, selection, and navigation on the phone and explains the flow. |
-| 2026-11-22 | Added AsyncStorage favourites, startup restore, guarded add/remove, and Home quick access using existing Place/loadWeather. | Student checks persistence, duplicate names, removal, and offline selection on the phone. |
-| 2026-11-22 | Added one parsed-forecast cache, startup restoration, fetch-time display, and refresh while retaining previous data on failure. | Student checks offline reopen, no-cache startup, failed refresh, and explains storage versus React state. |
-| 2026-11-22 | Added Settings navigation, saved interval/unit choices, shared temperature formatting, and foreground refresh with cleanup. | Student verifies preferences after restart, both screens, interval changes, and background/return behaviour. |
-| 2026-11-22 | Shared search now recognises decimal coordinate pairs, reuses place validation, and calls loadWeather without geocoding. | Student checks names, valid pairs, malformed/range errors, and explains the decision flow. |
+| W-01 | Search by place name and find its coordinates using a geocoding API. | [ YES ] |
+| W-02 | Accept coordinates; reject invalid numbers and latitude/longitude outside valid ranges. | [  YES ] |
+| W-03 | Show current weather information and a scrollable seven-day summary with temperature and condition. | [  YES ] |
+| W-04 | Show today's available hourly entries and daily summaries for the other days. | [ YES  ] |
+| W-05 | Open a selected day's details: temperature, condition, wind, and precipitation where available. | [ YES  ] |
+| W-06 | Add/remove favourites, save them, and provide quick access. | [ YES  ] |
+| W-07 | Settings let the user change refresh interval and another preference: Celsius/Fahrenheit. | [ YES  ] |
+| W-08 | Use asynchronous requests and the real weather API in the final app. | [ YES  ] |
+| W-09 | Use a separate parser to convert JSON into the app's own model. | [ YES  ] |
+| W-10 | Save parsed forecasts and show saved data with a message when offline. | Implemented; offline restart unverified |
+| W-11 | Show loading, empty, and error messages; failed requests must not crash or leave a silent blank screen. | [ YES  ] |
+| W-12 | Work in portrait and landscape. | [ YES  ] |
+| W-13 | Have runnable, passing tests covering at least two of parsing, error-state logic, and data transformation. | YES |
+| W-14 | Document at least 20 interaction scenarios tested on a phone or official emulator. | [ YES  ] |
+| W-15 | Keep code readable and the app usable; separate the main responsibilities. | [ YES  ] |
 
-## 9. End-of-session ritual
 
-1. Summarise actual work; update implementation notes, decisions, and the next step here.
-2. Student explains a changed component's input/output, state changes, and one failure case before any completion tick.
-3. Student records actual tests in `docs/TEST_REPORT.md` and updates the oral map.
-4. Student writes their own `docs/LLM_PROCESS.md` entry: date, duration, tools/context, task/output, decisions, observations.
-5. Student keeps their own reflection notes. AI reminds; it does not write these records.
+Current code includes these features. The test report contains three unit tests and 20 phone scenarios. This is not confirmation that every requirement is complete.
 
-## 10. Done
+**Known testing limit:** offline requests were tested with the app open. Closing and reopening offline, including restoring the saved forecast, remains unverified because Expo Go could not reopen the project offline. Keeping data on screen does not prove storage restoration works.
 
-Student completion checks:
+## 4. Parts of the app (component specs)
 
-- [ ] All requirements implemented, verified, and explainable.
-- [ ] Required logic tests and at least 20 device/emulator scenarios documented with actual results.
-- [ ] Key tests detect temporary deliberate faults; correct code restored.
-- [ ] Real weather API enabled; historical reference-date override removed.
-- [ ] README, SPEC, process log, test files/report, and personal reflection ready.
-- [ ] Reflection and appendices A-D assembled; submitted at least one day before presentation.
+This section describes each part's job, what it receives/returns, and what to check. Older descriptions were written after implementation. Checks below are ideas, not recorded results. Paths start inside `mobile/`.
+
+### Models — W-03, W-05, W-09
+
+`models/weatherModels.ts` defines Place, ForecastEntry, and WeatherForecast. `models/Settings.ts` defines settings. Check that services, storage, and screens use these same types. Missing optional measurements use null, not zero.
+
+### Weather service and parser — W-08, W-09, W-11
+
+`services/weatherService.ts` receives a Place, downloads SMHI JSON, and calls `parsers/parseWeather.ts`. The parser receives JSON and the Place, checks the fields, and returns a WeatherForecast.
+
+Check valid data, missing temperature, failed requests, and timeout. SMHI's missing value 9999 is unavailable. Precipitation amounts are converted to mm/h using their interval length.
+
+### Place search and coordinate input — W-01, W-02, W-11
+
+`services/placeService.ts` receives search text and returns matching Places through `parsers/parsePlace.ts`. It uses SMHI's current autocomplete endpoint because the lab's old URL returns 404.
+
+`parsers/parseCoordinates.ts` checks whether input is a coordinate pair. Valid coordinates go directly to weather loading; names go to place search. Enter latitude first, then longitude, separated by a comma, with dots for decimals.
+
+Check unknown names, same-name places, invalid coordinates, and failed searches.
+
+### ViewModel — W-01, W-03, W-04, W-07, W-10, W-11
+
+`viewmodels/useWeatherViewModel.ts` takes no arguments. It stores React state and returns values/actions for the screens. It calls services, saves/restores data, groups days, and chooses the forecast entry nearest now.
+
+Check loading/errors, fast searches, settings, and failed refreshes. Older request results must not replace newer ones. A failed request keeps the previous forecast under its original name.
+
+### Screens and navigation — W-03, W-04, W-05, W-06, W-07, W-12
+
+`App.tsx` calls the ViewModel hook once and shares it between three screens. Home receives values/actions; Details receives a selected day; Settings receives settings/actions.
+
+`HomeScreen.tsx` shows search, weather, favourites, daily summaries, and sideways hours. `DayDetailsScreen.tsx` shows the selected day's entries. `SettingsScreen.tsx` shows preferences. These files are under `screens/`.
+
+Check navigation, long names, empty data, scrolling, units, and rotation. Missing measurements should say Unavailable.
+
+### Grouping and display helpers — W-03, W-04, W-05
+
+`utils/groupForecastByDay.ts` receives forecast entries and a starting date. It returns ordered days with entries, low/high temperatures, and a condition code. It uses Swedish dates and does not invent missing days.
+
+`utils/formatTemperature.ts` converts temperatures for display. `utils/formatWeatherCondition.ts` converts SMHI codes into readable text.
+
+Check day/time ordering, midnight, Celsius/Fahrenheit, and readable conditions.
+
+### Storage — W-06, W-07, W-10, W-11
+
+The three files under `storage/` save and load favourites, settings, and the last parsed forecast using AsyncStorage. They check stored data before returning it.
+
+Check restart persistence, missing/corrupt data, and failed saves. A save failure must not discard the current forecast or pretend a preference was saved.
+
+### Tests — W-09, W-13
+
+`tests/weatherParser.test.mjs` checks valid parsing and a missing temperature. `tests/forecastGrouping.test.mjs` checks grouping, sorting, and low/high values. There are three tests, covering parsing and transformation.
+
+Run `npm test` from `mobile/`. This small suite does not check every edge case. The student's report holds results and mutation checks.
+
+## 5. Main decisions
+
+- Use MVVM. App owns one shared ViewModel; screens call its actions through props.
+- Keep services, parsers, models, state, storage, and screens separate.
+- Keep names consistent: fetchPlaces/fetchWeather in services; searchPlace/loadWeather in the ViewModel.
+- Store temperatures in Celsius and convert only for display.
+- Settings offer 15/30/60-minute refresh and Celsius/Fahrenheit. Defaults: 30 minutes and Celsius.
+- Refresh while active and check freshness on return. No background downloads.
+- Use today's Swedish date, not the proxy's historical date. Show forecast time and saved/previous-data warnings; omit the fetch-time display.
+- Keep three focused unit tests at the student's request. Other edge cases have less automated coverage.
+
+## 6. Oral-exam map
+
+Use this to find code, not as prepared personal answers. AI drafted the references at the student's request. The student must understand them. Start with Q26.
+
+All code paths below start in `mobile/`. Find the named function with editor search. UT-01/02/03 and UX/MT numbers refer to `docs/TEST_REPORT.md`.
+
+| Q | Topic | Where to look | Test/demo |
+| --- | --- | --- | --- |
+| 1 | API request and return value | `services/weatherService.ts`: fetchWeather; `services/placeService.ts`: fetchPlaces | UX-01, UX-03 |
+| 2 | JSON into model | `parsers/parseWeather.ts`: parseWeather; `models/weatherModels.ts` | UT-01 |
+| 3 | Used and ignored fields | `parsers/parseWeather.ts`: returned entry fields | UT-01; compare API JSON |
+| 4 | Successful HTTP response with missing fields | parseWeather validation; ViewModel loadWeather catch | UT-02, MT-02 |
+| 5 | Search to screen | HomeScreen handleSearch -> ViewModel searchPlace/loadWeather -> services | UX-01, UX-03 |
+| 6 | Cache and refresh | `storage/forecastStorage.ts`; ViewModel restoreForecast/refreshIfDue | UX-14, UX-18; offline restart unverified |
+| 7 | Where weather is stored | ViewModel weather useState; `App.tsx` shared hook | Trace setWeather |
+| 8 | New-city search | ViewModel searchPlace/loadWeather; Home status messages | UX-01, UX-09, UX-18 |
+| 9 | State updates the screen | ViewModel setWeather/return; App props; HomeScreen | Trace UX-01 |
+| 10 | Leave and return | ViewModel AppState effects and restore functions; storage files | UX-11, UX-13; inspect return handler |
+| 11 | Loading and old data | ViewModel loadWeather; Home loading/previous-data messages | UX-17, UX-18 |
+| 12 | Fast searches | ViewModel latestSearch/latestRequest checks | UX-20 |
+| 13 | Timeout | weatherService AbortController/timer; ViewModel catch; Home error | Proposed delayed-request demo; no timeout unit test |
+| 14 | Network versus API error | Service response.ok checks and ViewModel catch | UX-18; HTTP errors are not unit-tested |
+| 15 | First launch offline | loadCachedForecast; restoreForecast; Home no-saved-forecast message | Offline startup unverified |
+| 16 | Offline with saved data | loadCachedForecast; restoreForecast; Home saved-data message | Offline restart unverified; UX-16/18 only use loaded data |
+| 17 | Error state to screen | ViewModel error/searchError/cacheError and Home messages | UT-02; UX-02, UX-04, UX-17 to UX-19 |
+| 18 | Hardest error case | Student chooses; possible example: ViewModel request handling | Explain your own choice |
+| 19 | MVVM layers | Section 4; App, screens, ViewModel, models/services/parsers/storage | Trace UX-01 |
+| 20 | Requests outside View | Home action -> ViewModel -> weatherService | Explain the separation |
+| 21 | Logic tested without screens | parseWeather; groupForecastByDay; `tests/` | UT-01, UT-02, UT-03 |
+| 22 | Navigation | `App.tsx`: stack screens and onSelectDay callback | UX-07, UX-12 |
+| 23 | Requirement to code | W-09 -> parseWeather -> weatherParser.test.mjs | UT-01 |
+| 24 | Adding hourly support | ForecastEntry; groupForecastByDay; Home hourly list | Already implemented; UX-06/07 |
+| 25 | Explain AI-written function | Student chooses parseWeather or groupForecastByDay | Explain it line by line |
+| 26 | AI rules and requirement trace | Section 1 -> W-09 -> parseWeather | Opening question; show UT-01 |
+| 27 | Changed an AI suggestion | Home sideways hours/readable conditions; student's process log | Explain your own example and reason |
+| 28 | Verify AI code | forecastGrouping.test.mjs; groupForecastByDay minTemperature | UT-03, MT-03 |
+| 29 | Effective prompt | Student's `docs/LLM_PROCESS.md` | Choose and explain a real prompt |
+| 30 | What to change next time | Student's `docs/REFLECTION.md` | Student's own answer |
+
+## 7. Update log and next steps
+
+This is a project change history, not the student's personal process log. Earlier notes were recorded retrospectively. Test results stay in the test report.
+
+| Date | Project update |
+| --- | --- |
+| 2026-11-22 (retrospective) | Model, parser, proxy service, ViewModel, grouping, Home/Details, and sideways hours present. |
+| 2026-11-22 | SPEC aligned to the starter template; implementation notes and retrospective specs retained; testing-rule conflict flagged. |
+| 2026-11-22 | Added the place-service specification and implementation, reusing parsePlace. |
+| 2026-11-22 | Connected place search to independent ViewModel state and Home input/results; selecting coordinates reuses loadWeather. |
+| 2026-11-22 | Added AsyncStorage favourites, startup restore, guarded add/remove, and Home quick access using existing Place/loadWeather. |
+| 2026-11-22 | Added one parsed-forecast cache, startup restoration, fetch-time display, and refresh while retaining previous data on failure. |
+| 2026-11-22 | Added Settings navigation, saved interval/unit choices, shared temperature formatting, and foreground refresh with cleanup. |
+| 2026-11-22 | Shared search now recognises decimal coordinate pairs, reuses place validation, and calls loadWeather without geocoding. |
+| 2026-11-22 | Standardised service/action names and replaced the weather-function parameter with a direct import. |
+| 2026-11-22 | Connected SNOW1gv1 forecasts, updated the parser and precipitation units, and replaced the historical override with the current Swedish date. |
+| 2026-11-22 | Replaced KTH place search with SMHI’s current autocomplete endpoint, reusing the parser and search flow. |
+| 2026-11-23 | Added Home’s nearest-time forecast summary and larger location heading, reusing the existing minute/foreground clock and temperature formatter. |
+
+
+## 8. End of each session
+
+1. Update the project changes and next step here.
+2. Student explains the changed part before ticking a requirement.
+3. Student records tests, personal process-log entries, and reflection notes themselves.
+
+## 9. Before submission
+
+- [x] Student has checked the requirements and can explain the code.
+- [x] Test report contains unit tests, mutation checks, and 20 phone scenarios; limitations are stated.
+- [x] Correct production code is restored after mutation checks.
+- [x] App uses real APIs.
+- [x] README, SPEC, test report/test files, process log, and personal reflection are ready.
+- [x] One document contains reflection and appendices A–D; submit at least one day before presentation.

@@ -1,4 +1,4 @@
-import type { Place } from '../models/Weather';
+import type { Place } from '../models/weatherModels';
 import { isObject } from './parseWeather';
 
 export function parsePlace(data: unknown): Place {

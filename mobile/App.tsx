@@ -6,7 +6,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DayDetailsScreen } from './screens/DayDetailsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { fetchWeather } from './services/weatherService';
 import { useWeatherViewModel } from './viewmodels/useWeatherViewModel';
 
 type ScreenParams = {
@@ -17,11 +16,8 @@ type ScreenParams = {
 
 const Stack = createNativeStackNavigator<ScreenParams>();
 
-// The proxy returns historical data. Remove this override when using live SMHI.
-const referenceDate = '2021-11-01';
-
 export default function App() {
-  const viewModel = useWeatherViewModel(fetchWeather, referenceDate);
+  const viewModel = useWeatherViewModel();
 
   return (
     <SafeAreaProvider>
@@ -37,7 +33,7 @@ export default function App() {
             {({ navigation }) => (
               <HomeScreen
                 viewModel={viewModel}
-                referenceDate={referenceDate}
+                referenceDate={viewModel.referenceDate}
                 onSelectDay={date => navigation.navigate('DayDetails', { date })}
               />
             )}

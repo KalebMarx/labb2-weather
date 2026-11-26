@@ -1,10 +1,9 @@
-import type { Place } from '../models/Weather';
+import type { Place } from '../models/weatherModels';
 import { parsePlace } from '../parsers/parsePlace';
 
-// Development proxy only. Use the permitted geocoding API in the final app.
-const searchUrl = 'https://maceo.sth.kth.se/weather/search';
+const searchUrl = 'https://wpt-a.smhi.se/backend-weatherpage/geo/autocomplete/places';
 
-export async function searchPlaces(query: string): Promise<Place[]> {
+export async function fetchPlaces(query: string): Promise<Place[]> {
   const searchText = query.trim();
   if (searchText === '') return [];
 
@@ -12,7 +11,7 @@ export async function searchPlaces(query: string): Promise<Place[]> {
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(`${searchUrl}?location=${encodeURIComponent(searchText)}`, {
+    const response = await fetch(`${searchUrl}/${encodeURIComponent(searchText)}`, {
       signal: controller.signal,
     });
 

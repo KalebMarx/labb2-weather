@@ -1,4 +1,4 @@
-import type { ForecastEntry } from '../models/Weather';
+import type { ForecastEntry } from '../models/weatherModels';
 
 export type ForecastDay = {
   date: string;

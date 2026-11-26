@@ -2,18 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import type { Settings } from '../models/Settings';
-import type { Place, WeatherForecast } from '../models/Weather';
+import type { ForecastEntry, Place, WeatherForecast } from '../models/weatherModels';
 import { parseCoordinates } from '../parsers/parseCoordinates';
-import { searchPlaces as fetchPlaces } from '../services/placeService';
+import { fetchPlaces } from '../services/placeService';
+import { fetchWeather } from '../services/weatherService';
 import { loadFavourites, saveFavourites } from '../storage/favouritesStorage';
 import { loadCachedForecast, saveCachedForecast } from '../storage/forecastStorage';
 import { loadSettings, saveSettings } from '../storage/settingsStorage';
-import { groupForecastByDay } from '../utils/groupForecastByDay';
+import { getForecastDate, groupForecastByDay } from '../utils/groupForecastByDay';
 
-export function useWeatherViewModel(
-  fetchForecast: (place: Place) => Promise<WeatherForecast>,
-  referenceDate?: string,
-) {
+export function useWeatherViewModel() {
+  const [currentTime, setCurrentTime] = useState(Date.now);
+  const referenceDate = getForecastDate(new Date(currentTime).toISOString());
   const [weather, setWeather] = useState<WeatherForecast | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +36,21 @@ export function useWeatherViewModel(
   const [settingsBusy, setSettingsBusy] = useState(true);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const settingsBusyRef = useRef(false);
+
+  useEffect(() => {
+    function updateTime() {
+      setCurrentTime(Date.now());
+    }
+
+    const timer = setInterval(updateTime, 60 * 1000);
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') updateTime();
+    });
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, []);
 
   const restoreSettings = useCallback(async () => {
     if (settingsBusyRef.current) return;
@@ -147,7 +162,7 @@ export function useWeatherViewModel(
     }
   }
 
-  async function searchPlaces(query: string) {
+  async function searchPlace(query: string) {
     const requestId = ++latestSearch.current;
     setPlaces(null);
     setSearchError(null);
@@ -198,7 +213,7 @@ export function useWeatherViewModel(
     setError(null);
 
     try {
-      const forecast = await fetchForecast(place);
+      const forecast = await fetchWeather(place);
 
       // Ignore results from older requests when another search has started.
       if (requestId === latestRequest.current) {
@@ -227,7 +242,7 @@ export function useWeatherViewModel(
         setLoading(false);
       }
     }
-  }, [fetchForecast]);
+  }, []);
 
   const refreshIntervalMinutes = settings?.refreshIntervalMinutes;
 
@@ -264,11 +279,20 @@ export function useWeatherViewModel(
   }, [weather, refreshIntervalMinutes, loadWeather]);
 
   const days = groupForecastByDay(weather?.entries ?? [], referenceDate);
+  let currentWeather: ForecastEntry | null = null;
+  let nearestTimeDifference = Infinity;
+  for (const entry of weather?.entries ?? []) {
+    const timeDifference = Math.abs(Date.parse(entry.time) - currentTime);
+    if (timeDifference < nearestTimeDifference) {
+      currentWeather = entry;
+      nearestTimeDifference = timeDifference;
+    }
+  }
 
   return {
-    weather, days, loading, error, loadWeather,
+    weather, days, currentWeather, referenceDate, loading, error, loadWeather,
     usingSavedForecast, cacheError, restoringForecast,
-    places, searching, searchError, searchPlaces,
+    places, searching, searchError, searchPlace,
     favourites, favouritesBusy, favouritesError, restoreFavourites, isFavourite, toggleFavourite,
     settings, settingsBusy, settingsError, restoreSettings, updateSettings,
   };
